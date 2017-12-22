@@ -25,6 +25,8 @@
 
 #include "azure_c_shared_utility/macro_utils.h"
 #include "azure_c_shared_utility/umock_c_prod.h"
+#include "parson.h"
+#define USE_SERVER_DIAG_SETTINGS -1
 
 #define IOTHUB_CLIENT_FILE_UPLOAD_RESULT_VALUES \
     FILE_UPLOAD_OK, \
@@ -587,6 +589,16 @@ extern "C"
      */
      MOCKABLE_FUNCTION(, IOTHUB_CLIENT_RESULT, IoTHubClient_LL_UploadMultipleBlocksToBlob, IOTHUB_CLIENT_LL_HANDLE, iotHubClientHandle, const char*, destinationFileName, IOTHUB_CLIENT_FILE_UPLOAD_GET_DATA_CALLBACK, getDataCallback, void*, context);
 #endif /*DONT_USE_UPLOADTOBLOB*/
+
+     /**
+     * @brief    This API Can enable E2E diagnostics for the device
+     *
+     * @param    iotHubClientHandle      The handle created by a call to the create function.
+     * @param    samplingPercentage      The samplingPercentage should between [0, 100]. If samplingPercentage is set to USE_SERVER_DIAG_SETTINGS, then the device will use diag settings from server.
+     *
+     * @return   IOTHUB_CLIENT_OK upon success or an error code upon failure.
+     */
+     MOCKABLE_FUNCTION(, IOTHUB_CLIENT_RESULT, IoTHubClient_LL_EnableDiagnostic, IOTHUB_CLIENT_LL_HANDLE, iotHubClientHandle, int, samplingPercentage);
 
 #ifdef __cplusplus
 }

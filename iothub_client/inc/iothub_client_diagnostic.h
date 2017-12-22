@@ -15,7 +15,7 @@
 
 #include "iothub_message.h"
 #include <stdint.h>
-
+#include "parson.h"
 #ifdef __cplusplus
 #include <cstddef>
 extern "C" {
@@ -23,11 +23,14 @@ extern "C" {
 #include <stddef.h>
 #endif
 
+#define DEVICE_TWIN_SAMPLING_RATE_KEY "_diag_sample_rate"
+
 /** @brief diagnostic related setting */
 typedef struct IOTHUB_DIAGNOSTIC_SETTING_DATA_TAG
 {
     uint32_t diagSamplingPercentage;
     uint32_t currentMessageNumber;
+    bool useRemoteSettings;
 } IOTHUB_DIAGNOSTIC_SETTING_DATA;
 
 /**
@@ -42,6 +45,20 @@ typedef struct IOTHUB_DIAGNOSTIC_SETTING_DATA_TAG
     * @return	0 upon success
     */
 MOCKABLE_FUNCTION(, int, IoTHubClient_Diagnostic_AddIfNecessary, IOTHUB_DIAGNOSTIC_SETTING_DATA *, diagSetting, IOTHUB_MESSAGE_HANDLE, messageHandle);
+
+/**
+    * @brief	Parse diagnostic settings from device twin
+    *
+    * @param	diagSetting		Pointer to an @c IOTHUB_DIAGNOSTIC_SETTING_DATA structure
+    *
+    * @param	payLoad			Received device twin
+    *
+    * @param	message			Record some messages when parse diagnostic settings
+    *
+    * @return	0 upon success
+*/
+
+MOCKABLE_FUNCTION(, int, IoTHubClient_Diagnostic_ParseTwinSettings, IOTHUB_DIAGNOSTIC_SETTING_DATA*, diagSetting, const unsigned char*, payLoad, char *,message);
 
 #ifdef __cplusplus
 }

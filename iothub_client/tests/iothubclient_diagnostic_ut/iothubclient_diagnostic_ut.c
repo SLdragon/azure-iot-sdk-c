@@ -27,6 +27,7 @@ static void my_gballoc_free(void* ptr)
 #include "umock_c_negative_tests.h"
 #include "umocktypes_stdint.h"
 #include "umocktypes_bool.h"
+#include "parson.h"
 
 #define ENABLE_MOCKS
 #include "azure_c_shared_utility/gballoc.h"
@@ -262,6 +263,77 @@ TEST_FUNCTION(IoTHubClient_Diagnostic_AddIfNecessary_no_diag_info_with_normal_pe
         ASSERT_ARE_EQUAL(uint32_t, diag_setting.currentMessageNumber, index + 1);
         ASSERT_IS_TRUE(result == 0);
     }
+}
+
+
+/* Tests_SRS_IOTHUB_DIAGNOSTIC_13_006: [ IoTHubClient_Diagnostic_ParseTwinSettings should return zero when twin settings is a valid json and diag_sampling_rate is between [0,100]. ]*/
+TEST_FUNCTION(IoTHubClient_Diagnostic_ParseTwinSettings_twin_with_valid_diag_info)
+{
+    //arrange
+    IOTHUB_DIAGNOSTIC_SETTING_DATA diag_setting =
+    {
+        50,		/*diagnostic sampling percentage*/
+        0		/*message number*/
+    };
+    char message[200] = "";
+    const unsigned char payLoad[] = "{\"_diag_sample_rate\":99}";
+
+    //act
+    int result = IoTHubClient_Diagnostic_ParseTwinSettings(&diag_setting, payLoad, message);
+
+    //assert
+    ASSERT_IS_TRUE(result == 0);
+
+    ASSERT_IS_TRUE(diag_setting.diagSamplingPercentage == 99);
+
+    //cleanup
+}
+
+/* Tests_SRS_IOTHUB_DIAGNOSTIC_13_007: [ IoTHubClient_Diagnostic_ParseTwinSettings should return nonezero and diag_setting keep unchanged when twin settings of diag_sampling_rate is not between [0,100]. ]*/
+TEST_FUNCTION(IoTHubClient_Diagnostic_ParseTwinSettings_twin_with_invalid_diag_info)
+{
+    //arrange
+    IOTHUB_DIAGNOSTIC_SETTING_DATA diag_setting =
+    {
+        50,		/*diagnostic sampling percentage*/
+        0		/*message number*/
+    };
+    char message[200]="";
+    const unsigned char payLoad[] = "{\"_diag_sample_rate\":101}";
+
+    //act
+    int result = IoTHubClient_Diagnostic_ParseTwinSettings(&diag_setting, payLoad, message);
+
+    //assert
+    ASSERT_IS_FALSE(result == 0);
+
+    ASSERT_IS_TRUE(diag_setting.diagSamplingPercentage == 50);
+
+    //cleanup
+}
+
+
+/* Tests_SRS_IOTHUB_DIAGNOSTIC_13_008: [ IoTHubClient_Diagnostic_ParseTwinSettings should return nonezero and diag_setting keep unchanged when twin settings is not a valid json. ]*/
+TEST_FUNCTION(IoTHubClient_Diagnostic_ParseTwinSettings_invalid_twin)
+{
+    //arrange
+    IOTHUB_DIAGNOSTIC_SETTING_DATA diag_setting =
+    {
+        50,		/*diagnostic sampling percentage*/
+        0		/*message number*/
+    };
+    char message[200] = "";
+    const unsigned char payLoad[] = "";
+
+    //act
+    int result = IoTHubClient_Diagnostic_ParseTwinSettings(&diag_setting, payLoad, message);
+
+    //assert
+    ASSERT_IS_FALSE(result == 0);
+
+    ASSERT_IS_TRUE(diag_setting.diagSamplingPercentage == 50);
+
+    //cleanup
 }
 
 END_TEST_SUITE(iothubclient_diagnostic_ut)

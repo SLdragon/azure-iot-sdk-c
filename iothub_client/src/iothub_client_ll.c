@@ -32,6 +32,9 @@
 #define LOG_ERROR_RESULT LogError("result = %s", ENUM_TO_STRING(IOTHUB_CLIENT_RESULT, result));
 #define INDEFINITE_TIME ((time_t)(-1))
 
+#define DEVICE_TWIN_REPORT_LEN 200
+#define REPORT_TWIN_TEMPLATE  "{ \"_diag_sample_rate\": %d, \"_diag_info\": \"%s\"}"
+
 DEFINE_ENUM_STRINGS(IOTHUB_CLIENT_RESULT, IOTHUB_CLIENT_RESULT_VALUES);
 DEFINE_ENUM_STRINGS(IOTHUB_CLIENT_CONFIRMATION_RESULT, IOTHUB_CLIENT_CONFIRMATION_RESULT_VALUES);
 
@@ -429,6 +432,7 @@ static IOTHUB_CLIENT_LL_HANDLE_DATA* initialize_iothub_client(const IOTHUB_CLIEN
 
                             result->diagnostic_setting.currentMessageNumber = 0;
                             result->diagnostic_setting.diagSamplingPercentage = 0;
+                            result->diagnostic_setting.useRemoteSettings = false;
                             /*Codes_SRS_IOTHUBCLIENT_LL_25_124: [ `IoTHubClient_LL_Create` shall set the default retry policy as Exponential backoff with jitter and if succeed and return a `non-NULL` handle. ]*/
                             if (IoTHubClient_LL_SetRetryPolicy(result, IOTHUB_CLIENT_RETRY_EXPONENTIAL_BACKOFF_WITH_JITTER, 0) != IOTHUB_CLIENT_OK)
                             {
@@ -510,6 +514,34 @@ static IOTHUB_DEVICE_TWIN* dev_twin_data_create(IOTHUB_CLIENT_LL_HANDLE_DATA* ha
         LogError("Failure allocating device twin information");
     }
     return result;
+}
+
+static int send_diagnostic_reported_state(IOTHUB_CLIENT_LL_HANDLE iotHubClientHandle, int samplingPercentage, const char * error)
+{
+    char *data = (char *)malloc(DEVICE_TWIN_REPORT_LEN * sizeof(char));
+    if (data == NULL)
+    {
+        LogError("malloc for reportData failed");
+        return __FAILURE__;
+    }
+
+    sprintf(data, REPORT_TWIN_TEMPLATE, samplingPercentage, error);
+
+    if (IoTHubClient_LL_SendReportedState(iotHubClientHandle, (const unsigned char*)data, strlen(data), NULL, NULL) == IOTHUB_CLIENT_OK)
+    {
+        free(data);
+        return 0;
+    }
+    free(data);
+    LogError("IoTHubClient_LL_SendReportedState failed");
+    return __FAILURE__;
+}
+
+static void parse_diagnostic_settings_from_twin(IOTHUB_DIAGNOSTIC_SETTING_DATA* diagSetting, IOTHUB_CLIENT_LL_HANDLE iotHubClientHandle, const unsigned char* payLoad)
+{
+    char message[DEVICE_TWIN_REPORT_LEN] = "";
+    IoTHubClient_Diagnostic_ParseTwinSettings(diagSetting, payLoad, message);
+    send_diagnostic_reported_state(iotHubClientHandle, diagSetting->diagSamplingPercentage, message);
 }
 
 IOTHUB_CLIENT_LL_HANDLE IoTHubClient_LL_CreateFromDeviceAuth(const char* iothub_uri, const char* device_id, IOTHUB_CLIENT_TRANSPORT_PROVIDER protocol)
@@ -1439,6 +1471,12 @@ void IoTHubClient_LL_RetrievePropertyComplete(IOTHUB_CLIENT_LL_HANDLE handle, DE
     else
     {
         IOTHUB_CLIENT_LL_HANDLE_DATA* handleData = (IOTHUB_CLIENT_LL_HANDLE_DATA*)handle;
+
+        if (handleData->diagnostic_setting.useRemoteSettings)
+        {
+            parse_diagnostic_settings_from_twin(&handleData->diagnostic_setting, handle, payLoad);
+        }
+
         /* Codes_SRS_IOTHUBCLIENT_LL_07_014: [ If deviceTwinCallback is NULL then IoTHubClient_LL_RetrievePropertyComplete shall do nothing.] */
         if (handleData->deviceTwinCallback)
         {
@@ -2114,3 +2152,30 @@ IOTHUB_CLIENT_RESULT IoTHubClient_LL_UploadMultipleBlocksToBlob(IOTHUB_CLIENT_LL
 }
 
 #endif /* DONT_USE_UPLOADTOBLOB */
+
+IOTHUB_CLIENT_RESULT IoTHubClient_LL_EnableDiagnostic(IOTHUB_CLIENT_LL_HANDLE iotHubClientHandle, int samplingPercentage)
+{
+    IOTHUB_CLIENT_LL_HANDLE_DATA* handleData = (IOTHUB_CLIENT_LL_HANDLE_DATA*)iotHubClientHandle;
+
+    if (samplingPercentage == USE_SERVER_DIAG_SETTINGS)
+    {
+        if (handleData->IoTHubTransport_Subscribe_DeviceTwin(handleData->transportHandle) != 0)
+        {
+            LogError("Cannot subscribe device twin for diagnostic settings");
+            return IOTHUB_CLIENT_ERROR;
+        }
+        handleData->diagnostic_setting.useRemoteSettings = true;
+    }
+    else
+    {
+        if (samplingPercentage < 0 || samplingPercentage > 100)
+        {
+            LogError("Invalid samplingPercentage = %d, samplingPercentage should between [0, 100]", samplingPercentage);
+            return IOTHUB_CLIENT_ERROR;
+        }
+
+        handleData->diagnostic_setting.diagSamplingPercentage = samplingPercentage;
+    }
+
+    return IOTHUB_CLIENT_OK;
+}

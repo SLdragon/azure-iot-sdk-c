@@ -4970,7 +4970,7 @@ TEST_FUNCTION(IoTHubClient_LL_SetOption_diag_sampling_percentage_succeeds)
     IoTHubClient_LL_Destroy(h);
 }
 
-/*Tests_SRS_IOTHUBCLIENT_LL_10_036: [Calling IoTHubClient_LL_SetOption with value > 100 shall return `IOTHUB_CLIENT_ERRROR`. ]*/
+/*Tests_SRS_IOTHUBCLIENT_LL_10_036: [Calling IoTHubClient_LL_SetOption with value > 100 shall return `IOTHUB_CLIENT_ERROR`. ]*/
 TEST_FUNCTION(IoTHubClient_LL_SetOption_diag_sampling_percentage_fails)
 {
     //arrange
@@ -4989,5 +4989,82 @@ TEST_FUNCTION(IoTHubClient_LL_SetOption_diag_sampling_percentage_fails)
     IoTHubClient_LL_Destroy(h);
 }
 
+/*Tests_SRS_IOTHUBCLIENT_LL_10_037: [Calling IoTHubClient_LL_EnableDiagnostic with value between [0, 100] shall return `IOTHUB_CLIENT_OK`.  ]*/
+TEST_FUNCTION(IoTHubClient_LL_EnableDiagnostic_use_local_sampling_percentage_succeeds)
+{
+    //arrange
+    IOTHUB_CLIENT_LL_HANDLE h = IoTHubClient_LL_Create(&TEST_CONFIG);
+    umock_c_reset_all_calls();
+    //act
+    uint32_t diagPercentage = 99;
+    
+    IOTHUB_CLIENT_RESULT result = IoTHubClient_LL_EnableDiagnostic(h, diagPercentage);
+
+    //IOTHUB_CLIENT_LL_HANDLE_DATA* handleData = (IOTHUB_CLIENT_LL_HANDLE_DATA*)iotHubClientHandle;
+
+    //assert
+    ASSERT_ARE_EQUAL(IOTHUB_CLIENT_RESULT, IOTHUB_CLIENT_OK, result);
+    //ASSERT_ARE_EQUAL(uint32_t, handleData->diagSamplingPercentage, diagPercentage);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    //cleanup
+    IoTHubClient_LL_Destroy(h);
+}
+
+/*Tests_SRS_IOTHUBCLIENT_LL_10_038: [Calling IoTHubClient_LL_EnableDiagnostic with diagPercentage > 100 shall return `IOTHUB_CLIENT_ERROR`. ]*/
+TEST_FUNCTION(IoTHubClient_LL_EnableDiagnostic_use_local_sampling_percentage_fails)
+{
+    //arrange
+    IOTHUB_CLIENT_LL_HANDLE h = IoTHubClient_LL_Create(&TEST_CONFIG);
+    umock_c_reset_all_calls();
+
+    //act
+    uint32_t diagPercentage = 101;
+    IOTHUB_CLIENT_RESULT result = IoTHubClient_LL_EnableDiagnostic(h, diagPercentage);
+
+    //assert
+    ASSERT_ARE_EQUAL(IOTHUB_CLIENT_RESULT, IOTHUB_CLIENT_ERROR, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    //cleanup
+    IoTHubClient_LL_Destroy(h);
+}
+
+/*Tests_SRS_IOTHUBCLIENT_LL_10_039: [Calling IoTHubClient_LL_EnableDiagnostic with IoTHubTransport_Subscribe_DeviceTwin successed shall return `IOTHUB_CLIENT_OK`. ]*/
+TEST_FUNCTION(IoTHubClient_LL_EnableDiagnostic_use_device_twin_sampling_percentage_succeeds)
+{
+    //arrange
+    IOTHUB_CLIENT_LL_HANDLE h = IoTHubClient_LL_Create(&TEST_CONFIG);
+    umock_c_reset_all_calls();
+    STRICT_EXPECTED_CALL(FAKE_IoTHubTransport_Subscribe_DeviceTwin(IGNORED_PTR_ARG));
+    IOTHUB_CLIENT_RESULT result = IoTHubClient_LL_EnableDiagnostic(h, USE_SERVER_DIAG_SETTINGS);
+
+    //assert
+    ASSERT_ARE_EQUAL(IOTHUB_CLIENT_RESULT, IOTHUB_CLIENT_OK, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    //cleanup
+    IoTHubClient_LL_Destroy(h);
+}
+
+/*Tests_SRS_IOTHUBCLIENT_LL_10_040: [Calling IoTHubClient_LL_EnableDiagnostic with IoTHubTransport_Subscribe_DeviceTwin failed shall return `IOTHUB_CLIENT_OK`. ]*/
+TEST_FUNCTION(IoTHubClient_LL_EnableDiagnostic_use_device_twin_sampling_percentage_fails)
+{
+    //arrange
+    IOTHUB_CLIENT_LL_HANDLE h = IoTHubClient_LL_Create(&TEST_CONFIG);
+    umock_c_reset_all_calls();
+    STRICT_EXPECTED_CALL(FAKE_IoTHubTransport_Subscribe_DeviceTwin(IGNORED_PTR_ARG))
+        .IgnoreArgument_handle()
+        .SetReturn(__FAILURE__);
+
+    IOTHUB_CLIENT_RESULT result = IoTHubClient_LL_EnableDiagnostic(h, USE_SERVER_DIAG_SETTINGS);
+    
+    //assert
+    ASSERT_ARE_EQUAL(IOTHUB_CLIENT_RESULT, IOTHUB_CLIENT_ERROR, result);
+    ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
+
+    //cleanup
+    IoTHubClient_LL_Destroy(h);
+}
 
 END_TEST_SUITE(iothubclient_ll_ut)
