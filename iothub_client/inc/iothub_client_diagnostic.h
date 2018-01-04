@@ -16,6 +16,7 @@
 #include "iothub_message.h"
 #include <stdint.h>
 #include "parson.h"
+
 #ifdef __cplusplus
 #include <cstddef>
 extern "C" {

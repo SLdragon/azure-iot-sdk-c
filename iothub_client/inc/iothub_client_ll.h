@@ -26,6 +26,7 @@
 #include "azure_c_shared_utility/macro_utils.h"
 #include "azure_c_shared_utility/umock_c_prod.h"
 #include "parson.h"
+
 #define USE_SERVER_DIAG_SETTINGS -1
 
 #define IOTHUB_CLIENT_FILE_UPLOAD_RESULT_VALUES \

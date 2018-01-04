@@ -203,10 +203,17 @@ int IoTHubClient_Diagnostic_ParseTwinSettings(IOTHUB_DIAGNOSTIC_SETTING_DATA* di
     bool receivedFullTwinForTheFirstTime = true;
 
     JSON_Value* json = json_parse_string((const char *)payLoad);
+
+    /* Codes_SRS_IOTHUB_DIAGNOSTIC_13_006: [ IoTHubClient_Diagnostic_ParseTwinSettings should return nonezero if payLoad is not a valid json string. ]*/
+    if (json == NULL)
+    {
+        return __FAILURE__;
+    }
+
     JSON_Object* jsonObject = json_value_get_object(json);
     JSON_Object* desiredJsonObject = json_object_get_object(jsonObject, "desired");
 
-    /* Codes_SRS_IOTHUB_DIAGNOSTIC_13_006: [ IoTHubClient_Diagnostic_ParseTwinSettings should return nonezero if payLoad is not a valid json string. ]*/
+    /* Codes_SRS_IOTHUB_DIAGNOSTIC_13_007: [ IoTHubClient_Diagnostic_ParseTwinSettings should return nonezero if device twin json doesn't contains a valid desired property. ]*/
     if (desiredJsonObject == NULL && jsonObject == NULL)
     {
         return __FAILURE__;
@@ -222,7 +229,7 @@ int IoTHubClient_Diagnostic_ParseTwinSettings(IOTHUB_DIAGNOSTIC_SETTING_DATA* di
     {        
         if (receivedFullTwinForTheFirstTime)
         {
-            /* Codes_SRS_IOTHUB_DIAGNOSTIC_13_007: [ IoTHubClient_Diagnostic_ParseTwinSettings should return nonezero if there is no _diag_sample_rate in the twin when received for the first time. ]*/
+            /* Codes_SRS_IOTHUB_DIAGNOSTIC_13_008: [ IoTHubClient_Diagnostic_ParseTwinSettings should return nonezero if there is no _diag_sample_rate in the twin when received for the first time. ]*/
             strcat(message, "Property _diag_sample_rate is not exist.");
             result = __FAILURE__;
         }
@@ -231,7 +238,7 @@ int IoTHubClient_Diagnostic_ParseTwinSettings(IOTHUB_DIAGNOSTIC_SETTING_DATA* di
     {
         JSON_Value* diag_sample_rate_value = json_object_get_value(desiredJsonObject, DEVICE_TWIN_SAMPLING_RATE_KEY);
         if (json_value_get_type(diag_sample_rate_value) == JSONNumber) {
-            /* Codes_SRS_IOTHUB_DIAGNOSTIC_13_008: [ IoTHubClient_Diagnostic_ParseTwinSettings should return nonezero if sampling rate parsed from twin is not between [0,100]. ]*/
+            /* Codes_SRS_IOTHUB_DIAGNOSTIC_13_009: [ IoTHubClient_Diagnostic_ParseTwinSettings should return nonezero if sampling rate parsed from twin is not between [0,100]. ]*/
             double sampling_rate = json_object_get_number(desiredJsonObject, DEVICE_TWIN_SAMPLING_RATE_KEY);
             if (sampling_rate < 0 || sampling_rate > 100)
             {
@@ -245,14 +252,14 @@ int IoTHubClient_Diagnostic_ParseTwinSettings(IOTHUB_DIAGNOSTIC_SETTING_DATA* di
         }
         else if (json_value_get_type(diag_sample_rate_value) == JSONNull)
         {
-            /* Codes_SRS_IOTHUB_DIAGNOSTIC_13_009: [ IoTHubClient_Diagnostic_ParseTwinSettings should return nonezero and set diagSamplingPercentage = 0 when sampling rate parsed from twin is null. ]*/
+            /* Codes_SRS_IOTHUB_DIAGNOSTIC_13_010: [ IoTHubClient_Diagnostic_ParseTwinSettings should return nonezero and set diagSamplingPercentage = 0 when sampling rate parsed from twin is null. ]*/
             strcat(message, "Property _diag_sample_rate is set to null, so set it to 0.");
             diagSetting->diagSamplingPercentage = 0;
             result = __FAILURE__;
         }
         else
         {
-            /* Codes_SRS_IOTHUB_DIAGNOSTIC_13_009: [ IoTHubClient_Diagnostic_ParseTwinSettings should return nonezero when cannot parse sampling rate from twin. ]*/
+            /* Codes_SRS_IOTHUB_DIAGNOSTIC_13_011: [ IoTHubClient_Diagnostic_ParseTwinSettings should return nonezero when cannot parse sampling rate from twin. ]*/
             strcat(message, "Cannot parse _diag_sample_rate property from twin settings.");
             result = __FAILURE__;
         }
@@ -261,6 +268,3 @@ int IoTHubClient_Diagnostic_ParseTwinSettings(IOTHUB_DIAGNOSTIC_SETTING_DATA* di
     json_value_free(json);
     return result;
 }
-
-
-
